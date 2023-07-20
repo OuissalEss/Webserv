@@ -101,7 +101,7 @@ namespace ws
             bool		recvData(int i)
             {
                 std::string     requestText;
-                char 	        buffer[1024];
+                char 	        buffer[30000];
                 int	 	        rc = 0;
 
                 std::memset(&buffer, 0, sizeof(buffer));
@@ -117,7 +117,7 @@ namespace ws
                     return (false);
                 }
                 /* Check if request has finished receiving data      */
-                requestMap[fds[i].fd].append(buffer);
+                requestMap[fds[i].fd].append(buffer, rc);
                 requests[fds[i].fd].setServer(socket->getConfig());
                 requests[fds[i].fd].setBody(requestMap[fds[i].fd]);
                 requests[fds[i].fd].set_inittt();
@@ -140,13 +140,20 @@ namespace ws
                 {
                     // method GET
                     std::cout << "***********   GET   **********" << std::endl;
+                    LocationData   location = requests[fds[i].fd].getMyLocation();
+                    std::cout << "\tRoot       : " << location.getRoot() << std::endl;
+                    std::cout << "\tAutoindex  : " << location.getAutoindex() << std::endl;
+                    std::cout << "\tCgiGet       : " << location.getCgiGet() << std::endl;
+                    std::cout << "\tCgiPost       : " << location.getCgiPost() << std::endl;
+                    std::cout << "\tCgiDelete  : " << location.getCgiDelete() << std::endl;
+                    std::cout << "\tDefaultPage: " << location.getDefaultPage() << std::endl;
                 }
                 else if (requests[fds[i].fd].get_method() == 2 && requests[fds[i].fd].get_status() == 200)
                 {
                     //if (check_upload_support(this->final_path))
-                    // requests[fds[i].fd].upload();
+                        requests[fds[i].fd].upload();
                     //else
-			            requests[fds[i].fd].post();
+			            // requests[fds[i].fd].post();
                 }
                 else if (requests[fds[i].fd].get_method() == 3 && requests[fds[i].fd].get_status() == 200)
                 {

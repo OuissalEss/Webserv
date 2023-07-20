@@ -35,12 +35,11 @@ namespace ws
         if (line.find("autoindex : ") != std::string::npos)
         {
             std::string booln = line.substr(line.find("autoindex : ") + 12);
-            if (booln == "on")
+            if (booln.find("on") != std::string::npos)
                 location.setAutoindex(true);
-            else if (booln == "off")
+            else if (booln.find("off") != std::string::npos)
                 location.setAutoindex(false);
             else
-
                 throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
         }else
             throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
@@ -50,10 +49,10 @@ namespace ws
         if (line.find("cgi : ") != std::string::npos)
         {
             std::string booln = line.substr(line.find("cgi : ") + 6);
-            if (booln == "on")
-                location.setAutoindex(true);
-            else if (booln == "off")
-                location.setAutoindex(false);
+            if (booln.find("on") != std::string::npos)
+                location.setCgi(true);
+            else if (booln.find("off") != std::string::npos)
+                location.setCgi(false);
             else
                 throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
         }else

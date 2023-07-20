@@ -30,23 +30,25 @@ int	main(int argc, char **argv)
 		std::cerr << e.what() << '\n';
 	}
 	
-	// for (std::vector<ServerData>::iterator it = servers.begin(); it != servers.end(); it++)
+	// for (std::vector<ws::ServerData>::iterator it = servers.begin(); it != servers.end(); it++)
 	// {
 	// 	std::cout << "Server            : " << it->getHost() << std::endl;
 	// 	std::cout << "Port              : " << it->getPort() << std::endl;
 	// 	std::cout << "ServerName        : " << it->getServerName() << std::endl;
 	// 	std::cout << "BodySizeLimit     : " << it->getBodySizeLimit() << std::endl;
 	// 	std::cout << "DefaultErrorPages : " << it->getDefaultErrorPages() << std::endl;
-	// 	std::map<std::string, LocationData>	locations = it->getLocations();
-	// 	for (std::map<std::string, LocationData>::iterator it2 = locations.begin(); it2 != locations.end(); it2++)
+	// 	std::map<std::string, ws::LocationData>	locations = it->getLocations();
+	// 	for (std::map<std::string, ws::LocationData>::iterator it2 = locations.begin(); it2 != locations.end(); it2++)
 	// 	{
 	// 		std::cout << "Location	   : " << it2->first << std::endl;
 	// 		std::cout << "\tRoot	   : " << it2->second.getRoot() << std::endl;
 	// 		std::cout << "\tAutoindex  : " << it2->second.getAutoindex() << std::endl;
+	// 		std::cout << "\tCgi 	   : " << it2->second.getCgi() << std::endl;
 	// 		std::cout << "\tCgiGet	   : " << it2->second.getCgiGet() << std::endl;
 	// 		std::cout << "\tCgiPost	   : " << it2->second.getCgiPost() << std::endl;
 	// 		std::cout << "\tCgiDelete  : " << it2->second.getCgiDelete() << std::endl;
 	// 		std::cout << "\tDefaultPage: " << it2->second.getDefaultPage() << std::endl;
+	// 		std::cout << "\tRedirect   : " << it2->second.getRedirect() << std::endl;
 	// 	}
 	// }
 }

@@ -36,7 +36,7 @@ namespace ws
 			int 								body_kind;
 			int 								flag;
 			int 								delim;
-			int 								compairFlag;
+			int 								compareFlag;
 			std::string 						key;
 			std::string 						value;
 			std::string							location;
@@ -77,7 +77,7 @@ namespace ws
 			void set_inittt();
 			void get_matched();
 			void error();
-			void upload(std::fstream& file);
+			void upload();
 			bool file_exists(const std::string& filePath);
 			std::string compare(std::string s);
 			int not_allowed_char(std::string uri);

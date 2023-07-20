@@ -139,6 +139,11 @@ void ws::Request::check_errors()
 			return ;
 		}
 	}
+	if (this->header_map["\rContent-Type"].size() > 0)
+	{
+		this->extention = get_extention(this->header_map["\rContent-Type"].c_str());
+		this->flag = 1;
+	}
 	if (this->header_map["\rContent-Length"].size() > 0)
 	{
 		this->set_body_kind(2);
@@ -159,12 +164,6 @@ void ws::Request::check_errors()
 			return;
 		}
 	}
-	if (this->header_map["\rContent-Type"].size() > 0)
-	{
-		this->extention = get_extention(this->header_map["\rContent-Type"].c_str());
-		this->flag = 1;
-		return ;
-	}
 	if (this->flag != 1)
 	{
 		this->set_status(404);
@@ -178,6 +177,8 @@ int ws::Request::wait_for_size(std::string body)
 	std::string body2 = body.substr(j);
 	try
 	{
+		std::cout << "body length: " << body.length() << std::endl;
+		std::cout << "content length: " << (unsigned long)stoi(this->header_map["\rContent-Length"]) << std::endl;
 		if (body2.length() >= (unsigned long)stoi(this->header_map["\rContent-Length"]))
 			return 1;
 	}
@@ -267,9 +268,13 @@ int hexToDecimal(std::string& hexString) {
     return decimal;
 }
 
-void ws::Request::upload(std::fstream& file)
+void ws::Request::upload()
 {
 	int i = 0;
+	std::fstream file("request.txt",  std::ios::in | std::ios::out | std::ios::trunc);
+	std::string content = this->body;
+	if (file.is_open())
+		file.write(&content[0], content.size());
 	std::string output;
 	std::string body;
 	if (!file.is_open())
@@ -288,7 +293,7 @@ void ws::Request::upload(std::fstream& file)
 		std::ofstream filee;
 		std::string kk = this->generateName() + ".";
 		kk += this->extention;
-		filee.open("../uploads/" + kk);
+		filee.open("uploads/" + kk);
 		while(length != 0)
 		{
 			try
@@ -326,7 +331,7 @@ void ws::Request::upload(std::fstream& file)
 			std::ofstream filee;
 			std::string kk = this->generateName() + ".";
 			kk += this->extention;
-			filee.open("../uploads/" + kk);
+			filee.open("uploads/" + kk);
 			char c;
 			while (file.get(c))
 				this->last_body.push_back(c);
@@ -348,8 +353,8 @@ std::string ws::Request::compare(std::string s)
 {
 	if (this->location.size() == 1)
 	{
-		if (s == this->location)
-			return this->location;
+		this->compareFlag = 1;
+		return this->location;
 	}
 	int i = s.size();
 	if (this->location[i] != '\0' && this->location[i] != '/')
@@ -361,7 +366,7 @@ std::string ws::Request::compare(std::string s)
 		if (o == 0)
 		{
 			std::string path = this->location.substr(i);
-			this->compairFlag = 1;
+			this->compareFlag = 1;
 			return path;
 		}
 	}
@@ -374,9 +379,10 @@ void ws::Request::get_matched()
 	for (std::map<std::string, ws::LocationData>::const_iterator it2 = locations.begin(); it2 != locations.end(); ++it2)
 	{
 		compare(it2->first).size();
-		if (this->compairFlag == 1)
+		if (this->compareFlag == 1)
 		{
 			this->final_path = it2->second.getRoot() + compare(it2->first);
+			std::cout << final_path << std::endl;
 			myLocation = it2->second;
 			return ;
 		}
