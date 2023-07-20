@@ -3,6 +3,7 @@
 # include "ServerData.hpp"
 # include "Socket.hpp"
 # include "Request.hpp"
+# include "Response.hpp"
 # include <vector>
 # include <map>
 # include <iostream>
@@ -17,7 +18,8 @@ namespace ws
         private :
             std::vector<struct pollfd>  fds;
             std::vector<Socket>         sockets;
-            std::map<int, ws::Request>  requests;
+            std::map<int, Request>      requests;
+            std::map<int, Response>     responses;
             std::map<int, std::string>  requestMap;
         public :
             
@@ -124,7 +126,7 @@ namespace ws
 				if (requests[fds[i].fd].get_init() != 0)
                 {
                     std::cout << "***********FINISHED**********" << std::endl;
-					fds[i].revents = POLLOUT;
+					fds[i].events = POLLOUT;
                     requests[fds[i].fd].get_matched();
                     std::memset(&requestMap[fds[i].fd], 0, sizeof(requestMap[fds[i].fd]));
                 }
@@ -138,15 +140,7 @@ namespace ws
                 std::cout << "*********SEND RESPONSE********" << std::endl;
                 if (requests[fds[i].fd].get_method() == 1 && requests[fds[i].fd].get_status() == 200)
                 {
-                    // method GET
-                    std::cout << "***********   GET   **********" << std::endl;
-                    LocationData   location = requests[fds[i].fd].getMyLocation();
-                    std::cout << "\tRoot       : " << location.getRoot() << std::endl;
-                    std::cout << "\tAutoindex  : " << location.getAutoindex() << std::endl;
-                    std::cout << "\tCgiGet       : " << location.getCgiGet() << std::endl;
-                    std::cout << "\tCgiPost       : " << location.getCgiPost() << std::endl;
-                    std::cout << "\tCgiDelete  : " << location.getCgiDelete() << std::endl;
-                    std::cout << "\tDefaultPage: " << location.getDefaultPage() << std::endl;
+                    responses[fds[i].fd].get(fds[i].fd, requests[fds[i].fd]);
                 }
                 else if (requests[fds[i].fd].get_method() == 2 && requests[fds[i].fd].get_status() == 200)
                 {
@@ -157,7 +151,7 @@ namespace ws
                 }
                 else if (requests[fds[i].fd].get_method() == 3 && requests[fds[i].fd].get_status() == 200)
                 {
-                    // method DELETE
+                    responses[fds[i].fd]._delete(fds[i].fd, requests[fds[i].fd]);
                 }
                 else
                 {

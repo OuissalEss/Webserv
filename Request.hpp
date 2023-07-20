@@ -68,6 +68,7 @@ namespace ws
 			int get_init(){return this->init;};
 			int get_method(){return this->method;};
 			int get_body_kind(){return this->body_kind;};
+			std::string getFinalPath(){return this->final_path;};
 
 			//#################################
 			void post();

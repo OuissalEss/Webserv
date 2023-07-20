@@ -30,11 +30,12 @@ int ws::Request::not_allowed_char(std::string uri)
 
 std::string get_extention(std::string s)
 {
+	s = s.erase(s.size() - 1);
 	int i = 0;
 	std::string ext;
 	while (s[i] != '/')
 		i++;
-	ext = s.substr(i + 1, s.size());
+	ext = s.substr(i + 1);
 	return (ext);
 };
 
@@ -305,6 +306,7 @@ void ws::Request::upload()
 				for(int i = 0; i < length; i++)
 				{
 					file.get(c);
+					filee << c;
 					this->last_body.push_back(c);
 				}
 				file.get(c);
@@ -317,8 +319,8 @@ void ws::Request::upload()
 			
 		}
 		file.close();
-		for (size_t i = 0; i < this->last_body.size(); ++i)
-			filee << this->last_body[i];
+		//for (size_t i = 0; i < this->last_body.size(); ++i)
+		//	filee << this->last_body[i];
 		filee.close();
 		this->set_status(201);
 	}
@@ -327,18 +329,18 @@ void ws::Request::upload()
 		try
 		{
 			getline(file, output);
-			size_t length = stoi(this->header_map["\rContent-Length"]);
+			// size_t length = stoi(this->header_map["\rContent-Length"]);
 			std::ofstream filee;
 			std::string kk = this->generateName() + ".";
 			kk += this->extention;
 			filee.open("uploads/" + kk);
 			char c;
 			while (file.get(c))
+			{
+				filee << c;
 				this->last_body.push_back(c);
+			}
 			file.close();
-			for (size_t i = 0; i < length; ++i) {
-					filee << this->last_body[i];
-				}
 			filee.close();
 			this->set_status(201);
 		}
