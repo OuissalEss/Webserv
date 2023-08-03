@@ -6,7 +6,7 @@
 /*   By: slaajour <slaajour@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/07/20 07:19:30 by slaajour          #+#    #+#             */
-/*   Updated: 2023/08/02 08:05:08 by slaajour         ###   ########.fr       */
+/*   Updated: 2023/08/03 11:08:33 by slaajour         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,11 +37,14 @@ namespace ws
 			if (path[path.size() - 1] != '/')
 				setStatusCode(409);
 			else
+			{
 				setStatusCode(403);
+			}
 		}
 		else
 		{
-			if (fileExists(path.c_str()))
+			struct stat fileStat;
+			if (stat(path.c_str(), &fileStat) == 0)
 			{
 				if (writePerm(path.c_str()))
 				{
@@ -55,7 +58,7 @@ namespace ws
 					setStatusCode(403);
 			}
 			else
-				setStatusCode(404);		
+				setStatusCode(404);
 		}
 		fileName = server.getDefaultErrorPages() + std::to_string(getStatusCode()) + ".html";
 	}

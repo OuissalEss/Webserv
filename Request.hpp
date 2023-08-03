@@ -44,6 +44,7 @@ namespace ws
 			int									doubleKind;
 			int									cookieflag;
 			int									slash;
+			std::string 						cgiName;
 			std::string							html;
 			ServerData							server;
 			std::string 						key;
@@ -85,6 +86,7 @@ namespace ws
 			void setFinalPath(std::string k){this->final_path = k;};
 			void setlocation(std::string s){this->location = s;};
 			void setLastBody(std::string s){this->last_body = s;};
+			void setCgiName(std::string s){this->cgiName = s;};
 
 			//getters
 			LocationData getMyLocation(){return this->myLocation;};
@@ -110,6 +112,7 @@ namespace ws
 			std::string getQuery() {return this->query;};
 			std::string getCgiFile() {return this->cgiFile;};
 			std::string getExtention() {return this->extention;};
+			std::string getCgiName() {return this->cgiName;};
 
 			//#################################
 			//void post();

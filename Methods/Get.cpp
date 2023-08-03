@@ -6,7 +6,7 @@
 /*   By: slaajour <slaajour@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/07/20 07:18:12 by slaajour          #+#    #+#             */
-/*   Updated: 2023/08/02 07:38:13 by slaajour         ###   ########.fr       */
+/*   Updated: 2023/08/03 11:09:08 by slaajour         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,24 +111,17 @@ namespace ws
 		std::string location = _request.getLocation();
 		if (loc.getRedirect() != "")
 		{
-			std::cout << "REDIRECT" << std::endl;
 			this->setStatusCode(301);
 			fileName = "https://" + loc.getRedirect();
 			return ;
 		}
 		if (isDirectoryMine(path))
 		{
-			// std::cout << " DIRECTORY " << std::endl;
-			std::string defaultFilePath = path + loc.getDefaultPage();
-			// std::cout << "The path is ======> " << path << std::endl;
 			if (path[path.size() - 1] != '/')
 			{
-				std::cout << "ARE YOU HERE" << std::endl;
 				location += '/';
 				this->setStatusCode(301);
 				fileName = location;
-				// std::cout << "LOCATION =========>" << location << std::endl;
-				// std::cout << "=========>" << fileName << std::endl;
 				return ;
 			}
 			else
@@ -140,9 +133,6 @@ namespace ws
 						setStatusCode(200);
 						std::string data = generateAutoIndex(path);
 						std::string autoIndexFile = path + "autoindex.html";
-						// std::cout << "************** AUTO INDEX **************" << std::endl;
-						// std::cout << "filename: " << autoIndexFile << std::endl;
-						// std::cout << "path: " << path << std::endl;
 						int autoIndex = open(autoIndexFile.c_str(), O_RDWR | O_CREAT, 0777);
 						write(autoIndex, data.c_str(), strlen(data.c_str()));
 						close(autoIndex);
@@ -159,15 +149,15 @@ namespace ws
 				}
 				else
 				{
-					// std::cout << "-----------> defaultFilePath: " << defaultFilePath << std::endl;
+					std::string defaultFilePath = path + loc.getDefaultPage();
 					if (fileExists(defaultFilePath))
            			{
-						// std::cout << "loc.getCgi(): " << loc.getCgi() << std::endl;
-           			    if (loc.getCgi() == true && access(defaultFilePath.c_str(), X_OK) == 0)
-           			    {
+						std::string extension = defaultFilePath.substr(defaultFilePath.find_last_of(".") + 1);
+           				if (loc.getCgi() == true && (extension == "php" || extension == "py"))
+           				{
 							setStatusCode(200);
 							isCgi = true;
-							fileName = executeCGI(path, _request);
+							fileName = executeCGI(defaultFilePath, _request);
 							if (fileName == "fork failed")
 							{
 								isCgi = false;
@@ -175,13 +165,13 @@ namespace ws
 								fileName = server.getDefaultErrorPages() + std::to_string(getStatusCode()) + ".html";
 								return ;			
 							}
-           			    }
-           			    else
-           			    {
-           			        setStatusCode(200);
-           			        fileName = defaultFilePath;
-           			        return;
-           			    }
+           				}
+           				else
+           				{
+           				    setStatusCode(200);
+							fileName = defaultFilePath;
+           				    return;
+           				}
 					}
 					else
 					{
@@ -196,13 +186,10 @@ namespace ws
 		{
 			if (fileExists(path))
            	{
-				// std::cout << "CGI" << std::endl;
 				std::string extension = path.substr(path.find_last_of(".") + 1);
            	    if (loc.getCgi() == true && (extension == "php" || extension == "py"))
            	    {
 					setStatusCode(200);
-					std::string cgiPath = path;
-					// std::cout << "cgiPath: " << cgiPath << std::endl;
 					isCgi = true;
 					fileName = executeCGI(path, _request);
 					if (fileName == "fork failed")

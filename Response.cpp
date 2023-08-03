@@ -6,7 +6,7 @@
 /*   By: slaajour <slaajour@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/07/20 07:43:09 by slaajour          #+#    #+#             */
-/*   Updated: 2023/08/01 10:24:21 by slaajour         ###   ########.fr       */
+/*   Updated: 2023/08/03 08:58:36 by slaajour         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,6 @@ namespace ws
 
     std::string getResponseHeader(int statusCode, Response& _response)
     {
-        (void)statusCode;
         std::string response;
         if (statusCode == 301)
         {

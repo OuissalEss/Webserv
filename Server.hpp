@@ -115,7 +115,7 @@ namespace ws
                 ws::Socket *socket = findClient(fds[i].fd);
 
                 rc = recv(fds[i].fd, buffer, (sizeof(buffer) - 1), 0);
-                std::cout << "buffer: " << buffer << std::endl;
+                //std::cout << "buffer: " << buffer << std::endl;
                 /* Check to see if the recv failed. */
                 if (rc == -1)
                     return (false);

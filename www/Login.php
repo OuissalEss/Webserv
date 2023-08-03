@@ -16,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
     $allowed = array('jpg', 'jpeg', 'png', 'svg');
     if (in_array($avatar_actual_ext, $allowed))
     {
-        if ($avatar_error === 0) 
-        {
+        // if ($avatar_error === 0) 
+        // {
             if ($avatar_size < 1000000) 
             {
                 $avatar_name_new = uniqid('', true) . '.' . $avatar_actual_ext;
@@ -42,12 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
                 echo 'File too big';
                 exit(1);
             }
-        } 
-        else 
-        {
-            echo 'Error';
-            exit(1);
-        }
+        // } 
+        // else 
+        // {
+        //     echo 'Error';
+        //     exit(1);
+        // }
     } 
     else 
     {

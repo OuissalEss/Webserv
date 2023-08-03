@@ -6,16 +6,6 @@
 
 namespace ws
 {
-	bool fileExists1(const std::string& filename)
-	{
-		FILE* file = std::fopen(filename.c_str(), "r");
-		if (file)
-		{
-			std::fclose(file);
-			return true;
-		}
-		return false;
-	}
 	bool isDirectory1(std::string path)
 	{
 		struct stat st;
@@ -57,30 +47,33 @@ namespace ws
     }
 }
 
-	int hasIndexFiles(const std::string& directoryPath) {
-    	DIR* dir = opendir(directoryPath.c_str());
-    if (dir == nullptr) {
-        std::cerr << "Error opening director2: " << directoryPath << std::endl;
-        return 0;
-    }
-
-    std::vector<std::string> files;
-
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) 
+	int hasIndexFiles(const std::string& directoryPath)
 	{
-        if (entry->d_type == DT_REG) 
+    	DIR* dir = opendir(directoryPath.c_str());
+
+    	if (dir == nullptr)
 		{
-            std::string filename = entry->d_name;
-			if (filename.find("php") != std::string::npos)
-				return 1;
-			if (filename.find("html") != std::string::npos)
-				return 1;
-        }
-    }
-    closedir(dir);
-	return 0;
-}
+        	std::cerr << "Error opening director2: " << directoryPath << std::endl;
+        	return 0;
+    	}
+
+    	std::vector<std::string> files;
+
+    	struct dirent* entry;
+    	while ((entry = readdir(dir)) != nullptr) 
+		{
+    	    if (entry->d_type == DT_REG) 
+			{
+    	        std::string filename = entry->d_name;
+				if (filename.find("php") != std::string::npos)
+					return 1;
+				if (filename.find("html") != std::string::npos)
+					return 1;
+    	    }
+    	}
+    	closedir(dir);
+		return 0;
+	}
 
 	void Response::post(Request& _request)
 	{
@@ -90,7 +83,6 @@ namespace ws
 		std::string path = _request.getFinalPath();
 		if (isDirectory1(path))
 		{
-			std::string defaultFilePath = path + loc.getDefaultPage();
 			if (path[path.size() - 1] != '/')
 			{
 				path += '/';
@@ -111,11 +103,15 @@ namespace ws
 				{
 					if (hasIndexFiles(path))
            			{
+						std::cout << "has index files\n";
+						std::cout << "index file: " << path << std::endl;
+						std::string defaultFilePath = path + loc.getDefaultPage();
+						std::cout << "defaultFilePath: " << defaultFilePath << std::endl;
            			    if (loc.getCgi() == true)
            			    {
 							setStatusCode(200);
 							isCgi = true;
-							fileName = executeCGI(path, _request);
+							fileName = executeCGI(defaultFilePath, _request);
 							if (fileName == "fork failed")
 							{
 								isCgi = false;
@@ -148,7 +144,6 @@ namespace ws
 			{
 				setStatusCode(200);
 				std::string cgiPath = path;
-				// std::cout << "cgiPath: " << cgiPath << std::endl;
 				isCgi = true;
 				fileName = executeCGI(path, _request);
 				if (fileName == "fork failed")
@@ -161,7 +156,6 @@ namespace ws
 			}
 			else
 			{
-				printf("file is not index file\n");
 				setStatusCode(404);
 				fileName = server.getDefaultErrorPages() + std::to_string(getStatusCode()) + ".html";
 				return ;
