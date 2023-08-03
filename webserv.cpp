@@ -6,6 +6,12 @@
 #include <iostream>
 #include <vector>
 
+void    hand_signal(int sig)
+{
+	(void)sig;
+    return ;
+}
+
 int	main(int argc, char **argv)
 {
 	std::vector<ws::ServerData> servers;
@@ -15,15 +21,13 @@ int	main(int argc, char **argv)
 		if (argc != 2)
 			throw ws::ServerData::Error("Error: Wrong number of arguments");
 		servers = ws::parseConfigFile(argv[1]);
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
-	try
-	{
+
+		ws::checkConfig(servers);
+
+		signal(SIGPIPE, &hand_signal);
+
 		ws::Server server(servers);
-		server.startServer();
+		server.startServer(servers);
 	}
 	catch(const std::exception& e)
 	{

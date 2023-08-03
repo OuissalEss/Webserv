@@ -46,7 +46,6 @@ namespace ws
 
 			// METHODS
 
-
 			// EXCEPTIONS
 			class Error : public std::exception {
 				private:

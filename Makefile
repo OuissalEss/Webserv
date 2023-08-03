@@ -1,8 +1,8 @@
 NAME	=	webserv
 RM		=	rm -f
 CC		=	c++
-FLAGS	=	-Wall -Wextra -Werror -std=c++98
-SRCS	=	webserv.cpp Request.cpp Methods/Get.cpp Methods/Post.cpp Methods/Delete.cpp Response.cpp
+FLAGS	=	-Wall -Wextra -Werror -std=c++98 -g #-fsanitize=address 
+SRCS	=	webserv.cpp Request.cpp Methods/Get.cpp Methods/Post.cpp Methods/Delete.cpp Response.cpp Cgi.cpp
 
 
 all: $(NAME)

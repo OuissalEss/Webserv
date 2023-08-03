@@ -30,6 +30,9 @@ namespace ws
             location.setRoot(line.substr(line.find("root : ") + 7));
         else
             throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
+        if (line[line.size() - 1] != '/')
+            location.setRoot(location.getRoot() + "/");
+
         getline(infile, line);
         lineNumber++;
         if (line.find("autoindex : ") != std::string::npos)
@@ -53,6 +56,20 @@ namespace ws
                 location.setCgi(true);
             else if (booln.find("off") != std::string::npos)
                 location.setCgi(false);
+            else
+                throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
+        }else
+            throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
+
+        getline(infile, line);
+        lineNumber++;
+        if (line.find("upload : ") != std::string::npos)
+        {
+            std::string booln = line.substr(line.find("upload : ") + 6);
+            if (booln.find("on") != std::string::npos)
+                location.setUpload(true);
+            else if (booln.find("off") != std::string::npos)
+                location.setUpload(false);
             else
                 throw ServerData::Error("Error: Config file is not well formated | line " + std::to_string(lineNumber));
         }else
@@ -139,6 +156,39 @@ namespace ws
     {
         std::vector<ServerData> servers = readConfig(fileName);
         return (servers);
+    }
+
+    void    checkConfig(std::vector<ServerData> &servers)
+    {
+        for (size_t i = 0; i < servers.size(); i++)
+        {
+            if (servers[i].getHost() != "127.0.0.1" && servers[i].getHost() != "0.0.0.0")
+                throw ServerData::Error("Error: Wrong host");
+            if (servers[i].getPort() < 1024 || servers[i].getPort() > 49151)
+                throw ServerData::Error("Error: Wrong port");
+            if (servers[i].getServerName().empty())
+                throw ServerData::Error("Error: Wrong server_name");
+            if (servers[i].getBodySizeLimit() < 0)
+                throw ServerData::Error("Error: Wrong bodysize_limit");
+            if (servers[i].getDefaultErrorPages().empty())
+                throw ServerData::Error("Error: Wrong default_error_pages");
+            std::map<std::string, LocationData>	locations = servers[i].getLocations();
+            for (std::map<std::string, LocationData>::iterator it = locations.begin(); it != locations.end(); it++)
+            {
+                if (it->second.getRoot().empty())
+                    throw ServerData::Error("Error: Wrong root");
+            }
+        }
+        /* CHECK IF SERVERS ARE DIFFERENT */
+        /* mazal dak l3jeb dyal la page de correction 🦦*/
+        for (size_t i = 0; i < servers.size(); i++)
+        {
+            for (size_t j = i + 1; j < servers.size(); j++)
+            {
+                if (servers[i].getHost() == servers[j].getHost() && servers[i].getPort() == servers[j].getPort() && servers[i].getServerName() == servers[j].getServerName())
+                    throw ServerData::Error("Error: Servers are the same");
+            }
+        }
     }
 }
 

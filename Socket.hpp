@@ -20,7 +20,7 @@ namespace ws
         private:
             int					socketD;
             std::vector<int>    clients;
-            char const          *ipaddr;
+            std::string         ipaddr;
             uint const          port;
             struct sockaddr_in	address;
             ws::ServerData		config;
@@ -28,8 +28,12 @@ namespace ws
         public:
 
             /*      Constructor       */
-            Socket(char const *ipaddr, uint port, ws::ServerData &config) : socketD(0), clients(0), ipaddr(ipaddr), port(port), address(), config(config)
+            Socket(char const *ipaddr, uint port, ws::ServerData &config) : socketD(0), clients(0), port(port), address(), config(config)
             {
+                if (ipaddr == NULL)
+                    this->ipaddr = "";
+                else
+                    this->ipaddr = ipaddr;
                 std::memset(&address, 0, sizeof(address));
 				std::memset(&address.sin_zero, 0, sizeof(address.sin_zero));
 				address.sin_family = AF_INET;
@@ -93,7 +97,7 @@ namespace ws
 
             void	listenSocket()
             {
-                if (listen(socketD, 10000) < 0)
+                if (listen(socketD, 1000) < 0)
                 {
 					std::cout << "Error can't listen on socket." << std::endl;
 					return ;
@@ -114,7 +118,6 @@ namespace ws
             void    startSocket()
             {
                 int x = 1;
-
                 createSocket();
                 if (setsockopt(socketD, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x)) < 0)
 				{

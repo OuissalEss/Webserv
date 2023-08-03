@@ -1,417 +1,456 @@
 #include "Request.hpp"
 
-void ws::Request::error()
+namespace ws
 {
-	std::cout << "Error" << this->status << std::endl;
-	exit(0);
-};
-
-int ws::Request::not_allowed_char(std::string uri)
-{
-	int i = 0;
-	while(uri[i])
+	void ws::Request::error()
 	{
-		if (uri[i] == ' ' && uri[i + 1] && uri[i + 1] == 'H')
-			break;
-		else
-			i++;
-	}
-	uri = uri.substr(0, i);
-	if (uri.length() >= 2048)
-		this->set_status(414);
-	const std::string allowedCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=";
-	for (std::string::const_iterator it = uri.begin(); it != uri.end(); ++it) 
-	{
-		if (allowedCharacters.find(*it) == std::string::npos)
-			return 1;
-	}
-	return 0;
-};
+		// std::cout << "Error" << this->status << std::endl;
+		exit(0);
+	};
 
-std::string get_extention(std::string s)
-{
-	s = s.erase(s.size() - 1);
-	int i = 0;
-	std::string ext;
-	while (s[i] != '/')
-		i++;
-	ext = s.substr(i + 1);
-	return (ext);
-};
-
-void ws::Request::parse_header(std::string body)
-{
-	int j = 0;
-	int first = 0;
-	std::string key;
-	std::string value;
-	while (body[j])
+	int ws::Request::not_allowed_char(std::string uri)
 	{
-		if(body[j] == '\r' && body[j + 1] == '\n' && body[j + 2] == '\r' && body[j + 3] == '\n')
-			break;
-		while (body[j] != ' ' && body[j] != ':')
+		int i = 0;
+		while(uri[i])
 		{
-			if (body[j] == '\n')
-				j++;
-			key.push_back(body[j]);
-			j++;
-		}
-		if (first == 0)
-		{
-			if (!(key.compare("GET")))
-				this->set_method(1);
-			else if (!(key.compare("POST")))
-				this->set_method(2);
-			else if (!(key.compare("DELETE")))
-				this->set_method(3);
+			if (uri[i] == ' ' && uri[i + 1] && uri[i + 1] == 'H')
+				break;
 			else
-				this->set_status(405);
-			first = 1;
+				i++;
 		}
-		while (body[j + 1] != '\r')
+		uri = uri.substr(0, i);
+		if (uri.length() >= 2048)
+			this->set_status(414);
+		const std::string allowedCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=";
+		for (std::string::const_iterator it = uri.begin(); it != uri.end(); ++it) 
 		{
-			value.push_back(body[j + 2]);
+			if (allowedCharacters.find(*it) == std::string::npos)
+				return 1;
+		}
+		return 0;
+	};
+
+	std::string get_extention(std::string s)
+	{
+		int i = 0;
+		std::string ext;
+		s = s.erase(s.size() - 1);
+		while (s[i] != '/')
+			i++;
+		ext = s.substr(i + 1);
+		return (ext);
+	};
+
+	void ws::Request::parse_header(std::string body)
+	{
+		int j = 0;
+		int first = 0;
+		std::string key;
+		std::string value;
+		while (body[j] && body[j + 1] && body[j + 2] && body[j + 3])
+		{
+			if(body[j] == '\r' && body[j + 1] == '\n' && body[j + 2] == '\r' && body[j + 3] == '\n')
+				break;
+			while (body[j] != ' ' && body[j] != ':')
+			{
+				if (body[j] == '\n')
+					j++;
+				key.push_back(body[j]);
+				j++;
+			}
+			if (first == 0)
+			{
+				if (!(key.compare("GET")))
+					this->set_method(1);
+				else if (!(key.compare("POST")))
+					this->set_method(2);
+				else if (!(key.compare("DELETE")))
+					this->set_method(3);
+				else
+					this->set_status(405);
+				first = 1;
+			}
+			while (body[j + 1] != '\r')
+			{
+				value.push_back(body[j + 2]);
+				j++;
+			}
+			this->key = key;
+			this->value = value;
+			this->header_map[this->key] = this->value;
+			while (key.size() > 0)
+				key.pop_back();
+			while (value.size() > 0)
+				value.pop_back();
 			j++;
 		}
-		this->key = key;
-		this->value = value;
-		this->header_map[this->key] = this->value;
-		while (key.size() > 0)
-			key.pop_back();
-		while (value.size() > 0)
-			value.pop_back();
-		j++;
-	}
-	this->delim = j;
-	this->check_errors();
-};
+		this->delim = j;
+		setStoprn(j);
+		this->check_errors();
+		query = "";
+		if (location.find("?") != std::string::npos)
+		{
+			query = location.substr(location.find("?") + 1);
+			location = location.substr(0, location.find("?"));
+		}
+	};
 
-int ws::Request::check_rn(std::string body)
-{
-	int j = 0;
-	while (body[j])
+	int ws::Request::check_rn(std::string body)
 	{
-		if(body[j] == '\r' && body[j + 1] == '\n' && body[j + 2] == '\r' && body[j + 3] == '\n')
+		if (body.find("\r\n\r\n") != std::string::npos)
+		{
+			stopRn = body.find("\r\n\r\n");
 			return 1;
-		j++;
-	}
-	return 0;
-};
-
-void ws::Request::check_errors()
-{
-	if (this->get_method() == 1)
-	{
-		int i = 0;
-		std::string location1 = this->header_map["GET"].c_str();
-		while (location1[i] != ' ')
-			i++;
-		this->location = "/" + location1.substr(0, i);
-		if (this->not_allowed_char(this->header_map["GET"].c_str()))
-		{
-			this->set_status(400);
-			return ;
 		}
-	}
-	else if (this->get_method() == 2)
+		return 0;
+	};
+
+	void Request::check_errors()
 	{
-		int i = 0;
-		std::string location1 = this->header_map["POST"].c_str();
-		while (location1[i] != ' ')
-			i++;
-		this->location = "/" + location1.substr(0, i);
-		if (this->not_allowed_char(this->header_map["POST"].c_str()))
+		if (this->get_method() == 1)
 		{
-			this->set_status(400);
-			return ;
-		}
-
-	}
-	else if (this->get_method() == 3)
-	{
-		int i = 0;
-		std::string location1 = this->header_map["DELETE"].c_str();
-		while (location1[i] != ' ')
-			i++;
-		this->location = "/" + location1.substr(0, i);
-		if (this->not_allowed_char(this->header_map["DELETE"].c_str()))
-		{
-			this->set_status(400);
-			return ;
-		}
-	}
-	if (this->header_map["\rContent-Type"].size() > 0)
-	{
-		this->extention = get_extention(this->header_map["\rContent-Type"].c_str());
-		this->flag = 1;
-	}
-	if (this->header_map["\rContent-Length"].size() > 0)
-	{
-		this->set_body_kind(2);
-		this->flag = 1;
-		return ;
-	}
-	else if (this->header_map["\rTransfer-Encoding"].size() > 0)
-	{
-		if (strcmp(this->header_map["\rTransfer-Encoding"].c_str(), "chunked\r") != 0)
-		{
-			this->set_status(501);
-			return;
-		}
-		else
-		{
-			this->set_body_kind(1);
-			this->flag = 1;
-			return;
-		}
-	}
-	if (this->flag != 1)
-	{
-		this->set_status(404);
-		return ;
-	}
-};
-
-int ws::Request::wait_for_size(std::string body)
-{
-	int j = this->delim;
-	std::string body2 = body.substr(j);
-	try
-	{
-		std::cout << "body length: " << body.length() << std::endl;
-		std::cout << "content length: " << (unsigned long)stoi(this->header_map["\rContent-Length"]) << std::endl;
-		if (body2.length() >= (unsigned long)stoi(this->header_map["\rContent-Length"]))
-			return 1;
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << "" << '\n';
-	}
-	return 0;
-};
-
-int ws::Request::wait_for_zero(std::string body)
-{
-    if (body.find("0\r\n\r\n") != std::string::npos)
-        return 1;
-	return 0;
-};
-
-void	ws::Request::set_inittt()
-{
-	int k = 0;
-	if (this->check_rn(this->body))
-	{
-		if (k == 0)
-		{
-			this->parse_header(this->body);
-			k = 1;
-			if (this->status != 200)
-				this->set_init(-1);
-		}
-	}
-	if (this->get_body_kind()== 1 && this->init != -1)
-	{
-		usleep(200);
-		if(this->wait_for_zero(this->body))
-			this->set_init(1);
-	}
-	else if (this->get_body_kind() == 2)
-	{
-		if (this->wait_for_size(this->body))
-			this->set_init(1);
-	}
-};
-
-int the_end(std::string line)
-{
-	int i = line.length();
-	if (line[i] == '-' && line[i - 1] == '-')
-		return 1;
-	return 0;
-};
-
-int hexToDigit(const std::string& hexChar) {
-	if (hexChar >= "0" && hexChar <= "9") {
-		return hexChar[0] - '0';
-	} else if (hexChar >= "A" && hexChar <= "F") {
-		return hexChar[0] - 'A' + 10;
-	} else if (hexChar >= "a" && hexChar <= "f") {
-		return hexChar[0] - 'a' + 10;
-	}
-	return -1;
-};
-
-int hexToDecimal(std::string& hexString) {
-    int decimal = 0;
-    int power = 0;
-
-    for (int i = hexString.length() - 2; i >= 0; i--) {
-        char currentChar = hexString[i];
-    	int digitValue;
-
-        if (currentChar >= '0' && currentChar <= '9') {
-            digitValue = currentChar - '0';
-        }
-        else if (currentChar >= 'A' && currentChar <= 'F') {
-            digitValue = currentChar - 'A' + 10;
-        }
-        else if (currentChar >= 'a' && currentChar <= 'f') {
-            digitValue = currentChar - 'a' + 10;
-        }
-        else {
-            std::cerr << "Invalid hexadecimal digit: " << currentChar << std::endl;
-            return 0;
-        }
-        decimal += digitValue * static_cast<int>(std::pow(16, power));
-        power++;
-    }
-    return decimal;
-}
-
-void ws::Request::upload()
-{
-	int i = 0;
-	std::fstream file("request.txt",  std::ios::in | std::ios::out | std::ios::trunc);
-	std::string content = this->body;
-	if (file.is_open())
-		file.write(&content[0], content.size());
-	std::string output;
-	std::string body;
-	if (!file.is_open())
-		this->error();
-	file.seekg(0);
-	while(i < (int)this->header_map.size())
-	{
-		getline(file, output);
-		i++;
-	}
-	if (this->get_body_kind() == 1)
-	{
-		int length = 1;
-		char c;
-		std::string output;
-		std::ofstream filee;
-		std::string kk = this->generateName() + ".";
-		kk += this->extention;
-		filee.open("uploads/" + kk);
-		while(length != 0)
-		{
-			try
+			int i = 0;
+			std::string location1 = this->header_map["GET"].c_str();
+			while (location1[i] != ' ')
+				i++;
+			this->location = "/" + location1.substr(0, i);
+			setlocation(this->location);
+			if (this->not_allowed_char(this->header_map["GET"].c_str()))
 			{
-				getline(file, output);
-				int length = hexToDecimal(output);
-				if (length == 0)
-					break;
-				for(int i = 0; i < length; i++)
-				{
-					file.get(c);
-					filee << c;
-					this->last_body.push_back(c);
-				}
-				file.get(c);
-				file.get(c);
+				this->set_status(400);
 			}
-			catch(const std::exception& e)
-			{
-				std::cerr << "" << '\n';
-			}
-			
 		}
-		file.close();
-		//for (size_t i = 0; i < this->last_body.size(); ++i)
-		//	filee << this->last_body[i];
-		filee.close();
-		this->set_status(201);
-	}
-	if (this->get_body_kind()== 2)
+		else if (this->get_method() == 2)
+		{
+			int i = 0;
+			std::string location1 = this->header_map["POST"].c_str();
+			while (location1[i] != ' ')
+				i++;
+			this->location = "/" + location1.substr(0, i);
+			setlocation(this->location);
+			if (this->not_allowed_char(this->header_map["POST"].c_str()))
+			{
+				this->set_status(400);
+			}
+		}
+		else if (this->get_method() == 3)
+		{
+			int i = 0;
+			std::string location1 = this->header_map["DELETE"].c_str();
+			while (location1[i] != ' ')
+				i++;
+			this->location = "/" + location1.substr(0, i);
+			setlocation(this->location);
+			if (this->not_allowed_char(this->header_map["DELETE"].c_str()))
+			{
+				this->set_status(400);
+			}
+		}
+		if (this->header_map["\rContent-Type"].size() > 0)
+		{
+			this->extention = get_extention(this->header_map["\rContent-Type"].c_str());
+			std::cout << std::endl;
+			std::cout << "extention === " << this->extention << std::endl;
+			std::cout << "Content-Type === " << this->header_map["\rContent-Type"] << std::endl;
+			std::cout << std::endl;
+			set_flag(1);
+		}
+		if (this->header_map["\rContent-Length"].size() > 0)
+		{
+			this->set_double_kind(1);
+			this->set_body_kind(2);
+			set_flag(1);
+		}
+		if (this->header_map["\rTransfer-Encoding"].size() > 0)
+		{
+			if (get_double_kind() == 1)
+				this->set_status(404);
+			else if (strcmp(this->header_map["\rTransfer-Encoding"].c_str(), "chunked\r") != 0)
+			{
+				this->set_status(501);
+			}
+			else
+			{
+				this->set_body_kind(1);
+				set_flag(1);
+			}
+		}
+	};
+
+	int Request::wait_for_size(std::string body)
 	{
+		int j = this->delim;
+		std::string body2 = body.substr(j);
 		try
 		{
-			getline(file, output);
-			// size_t length = stoi(this->header_map["\rContent-Length"]);
-			std::ofstream filee;
-			std::string kk = this->generateName() + ".";
-			kk += this->extention;
-			filee.open("uploads/" + kk);
-			char c;
-			while (file.get(c))
-			{
-				filee << c;
-				this->last_body.push_back(c);
-			}
-			file.close();
-			filee.close();
-			this->set_status(201);
+			// std::cout << "Content length === " << (unsigned long)stoi(this->header_map["\rContent-Length"]) << std::endl;
+			// std::cout << "Body length === " << body2.size() << std::endl;
+			if (body2.length() >= (unsigned long)stoi(this->header_map["\rContent-Length"]))
+				return 1;
 		}
 		catch(const std::exception& e)
 		{
 			std::cerr << "" << '\n';
 		}
-	}
-}
+		return 0;
+	};
 
-std::string ws::Request::compare(std::string s)
-{
-	if (this->location.size() == 1)
+	int Request::wait_for_zero(std::string body)
 	{
-		this->compareFlag = 1;
-		return this->location;
-	}
-	int i = s.size();
-	if (this->location[i] != '\0' && this->location[i] != '/')
-		return std::string();
-	if (i != 1)
+		if (body.find("0\r\n\r\n") != std::string::npos)
+			return 1;
+		return 0;
+	};
+
+	int ws::Request::check_rn2(std::string body)
 	{
-		int o = 0;
-		o = s.substr(0, i).compare(this->location.substr(0, i));
-		if (o == 0)
+		if(body.find("\r\n\r\n") != std::string::npos)
+			return 1;
+		return 0;
+	};
+
+	void	Request::set_inittt()
+	{
+		if (get_flag2() == 0)
 		{
-			std::string path = this->location.substr(i);
-			this->compareFlag = 1;
-			return path;
+			if (check_rn(body))
+			{
+				parse_header(body);
+				setStoprn(stopRn + 4);
+				set_flag2(1);
+				if (status != 200)
+					set_init(-1);
+			}
 		}
-	}
-	return std::string();
-}
-
-void ws::Request::get_matched()
-{
-	const std::map<std::string, ws::LocationData>& locations = server.getLocations();
-	for (std::map<std::string, ws::LocationData>::const_iterator it2 = locations.begin(); it2 != locations.end(); ++it2)
-	{
-		compare(it2->first).size();
-		if (this->compareFlag == 1)
+		if (get_body_kind()== 1 && get_method() == 2)
 		{
-			this->final_path = it2->second.getRoot() + compare(it2->first);
-			std::cout << final_path << std::endl;
-			myLocation = it2->second;
-			return ;
+			usleep(200);
+			if(wait_for_zero(body))
+				set_init(1);
 		}
-	}
-	if (this->final_path.size() == 0)
-	{
-		std::cout << "not found 404\n";
-	}
-};
+		else if (get_body_kind() == 2 && get_method() == 2)
+		{
+			if (wait_for_size(body))
+				set_init(1);
+		}
+		if (get_method() == 1 || this->get_method() == 3)
+		{
+			if (check_rn2(body))
+				set_init(1);
+		}
+	};
 
-std::string ws::Request::generateName() {
-    const std::string vowels = "aeiou";
-    const std::string consonants = "bcdfghjklmnpqrstvwxyz";
-    std::string name;
-    
-    srand(time(0));  // Initialize random seed
-    
-    // Generate random name with a maximum size of 5 characters
-    int nameLength = rand() % 5 + 1;
-    
-    for (int i = 0; i < nameLength; ++i) {
-        if (i % 2 == 0) {  // Generate a vowel
-            name += vowels[rand() % vowels.size()];
-        } else {  // Generate a consonant
-            name += consonants[rand() % consonants.size()];
-        }
-    }
-    
-    return name;
-};
+	int the_end(std::string line)
+	{
+		int i = line.length();
+		if (i != 0 && line[i] == '-' && line[i - 1] == '-')
+			return 1;
+		return 0;
+	};
+
+	int hexToDigit(const std::string& hexChar) {
+		if (hexChar >= "0" && hexChar <= "9") {
+			return hexChar[0] - '0';
+		} else if (hexChar >= "A" && hexChar <= "F") {
+			return hexChar[0] - 'A' + 10;
+		} else if (hexChar >= "a" && hexChar <= "f") {
+			return hexChar[0] - 'a' + 10;
+		}
+		return -1;
+	};
+
+	int hexToDecimal(std::string& hexStr)
+	{
+		if (!strcmp(hexStr.c_str(), "0\r\n\r\n"))
+			return (0);
+		int decimalValue = 0;
+		int base = 1;
+
+		for (int i = hexStr.length() - 1; i >= 0; i--) {
+			char digit = hexStr[i];
+
+			int digitValue;
+			if (digit >= '0' && digit <= '9') {
+				digitValue = digit - '0';
+			} else if (digit >= 'A' && digit <= 'F') {
+				digitValue = digit - 'A' + 10;
+			} else if (digit >= 'a' && digit <= 'f') {
+				digitValue = digit - 'a' + 10;
+			} else {
+				return 0;
+			}
+			decimalValue += digitValue * base;
+			base *= 16;
+		}
+		return decimalValue;
+	}
+
+	std::string ws::Request::to_rn(std::string body)
+	{
+		int i = 0;
+		std::string hexa;
+		while (body[i] != '\r' && body[i + 1] && body[i + 1] != '\n')
+		{
+			hexa.push_back(body[i]);
+			i++;
+		}
+		return hexa;
+	};
+
+	void ws::Request::upload1(std::string body)
+	{
+		int tmp_stop_rn, chunk_size, x;
+		int i = 0;
+		if (file_cr == 0)
+		{ 
+			stopRn = get_stopRn();
+			std::string fileName = myLocation.getRoot() + generateName() + "." + extention;
+			filee.open(myLocation.getRoot() + generateName() + "." + extention,std::ios::out | std::ios::app);
+			cgiFile = fileName;
+			file_cr++;
+		}
+		tmp_stop_rn = stopRn;
+		while (true) {
+			std::string hexa = to_rn(&body[stopRn]);
+			x = stopRn;
+			tmp_stop_rn += hexa.size() + 2;
+			chunk_size = hexToDecimal(hexa);
+			for (i = 0; i < chunk_size && (tmp_stop_rn + i) < (int)body.size();) {
+				i++;
+			}
+			if (i != chunk_size) {
+				body = body.substr(x, body.size()-x);
+				break;
+			}
+			for (i = 0; i < chunk_size && (tmp_stop_rn + i) < (int)body.size(); i++) {
+				filee << body[tmp_stop_rn + i];
+			}
+			if (!chunk_size) {
+				break;
+			}
+			tmp_stop_rn += chunk_size + 2;
+			setStoprn(tmp_stop_rn);
+		}
+		filee.close();
+		return ;
+	};
+
+	void ws::Request::upload2(std::string body)
+	{
+		if (get_file_cr() == 0)
+		{
+			std::string fileName = myLocation.getRoot() + generateName() + "." + extention;
+			filee.open(fileName, std::ios::out | std::ios::app );
+			cgiFile = fileName;
+			set_file_cr(1);
+		}
+		while ((size_t)stopRn < body.size())
+		{
+			filee << body[stopRn];
+			stopRn++;
+		}
+		filee.close();
+		setStoprn(stopRn);
+	};
+
+	void ws::Request::slash_n(std::string s)
+	{
+		int sl = 0;
+		int i = 0;
+		while (s[i])
+		{
+			if (s[i] == '/')
+				sl++;
+			i++;
+		}
+		setslash(sl);
+	};
+
+	std::string ws::Request::remove_slash(std::string s)
+	{
+		std::string new_str;
+		int i = 0;
+		int sl = 0;
+		while (s[i])
+		{
+			if (s[i] == '/')
+			{
+				sl++;
+				if (sl == getslash())
+					break;
+			}
+			i++;
+		}
+		this->slash -= 1;
+		new_str = s.substr(0, i);
+		return (new_str);
+	};
+
+
+	std::string ws::Request::get_matched(std::string s)
+	{
+		// std::cout << "------------------------------------------------------" << std::endl;
+		// std::cout << "  s ==  " << s << std::endl;
+		// std::cout << "------------------------------------------------------" << std::endl;
+		slash_n(s);
+		const std::map<std::string, ws::LocationData>& locations = server.getLocations();
+		for (std::map<std::string, ws::LocationData>::const_iterator it2 = locations.begin(); it2 != locations.end(); ++it2)
+		{
+			if (!strcmp(it2->first.c_str(), s.c_str()))
+			{
+				try
+				{
+					std::string check = location.substr(it2->first.size());
+					if (check[0] == '/')
+						this->final_path = it2->second.getRoot().substr(0, it2->second.getRoot().size()) + this->location.substr(it2->first.size() + 1);
+					else
+						this->final_path = it2->second.getRoot().substr(0, it2->second.getRoot().size()) + this->location.substr(it2->first.size());
+					myLocation = it2->second;
+					this->compareFlag = 1;
+					return this->final_path;
+				}
+				catch(const std::exception& e)
+				{
+					std::cerr << "excep" << '\n';
+				}
+			}
+		}
+		// std::cout << "compareFlag ==  " << compareFlag << std::endl;
+		if (compareFlag == 0)
+		{
+			std::string new_s = remove_slash(s);
+			if (new_s.size() != 0)
+			{
+				if (get_matched(new_s) != "")
+					return final_path;
+			}
+			else
+			{
+				if (get_matched("/") != "")
+					return final_path;
+			}
+
+		}
+		else
+			return final_path;
+		set_status(404);
+		return std::string() ;
+	};
+
+	std::string ws::Request::generateName()
+	{
+		const std::string vowels = "aeiou";
+		const std::string consonants = "bcdfghjklmnpqrstvwxyz";
+		std::string name;
+		srand(time(0));
+		int nameLength = rand() % 5 + 1;
+		for (int i = 0; i < nameLength; ++i)
+		{
+			if (i % 2 == 0) 
+				name += vowels[rand() % vowels.size()];
+			else
+				name += consonants[rand() % consonants.size()];
+		}
+		return name;
+	};
+}

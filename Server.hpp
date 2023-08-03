@@ -10,6 +10,7 @@
 # include <stdlib.h>
 # include <list>
 # include <sys/poll.h>
+#include <fstream>
 
 namespace ws
 {
@@ -21,6 +22,8 @@ namespace ws
             std::map<int, Request>      requests;
             std::map<int, Response>     responses;
             std::map<int, std::string>  requestMap;
+            std::vector<ServerData>     servers;
+
         public :
             
             /*      Constructor       */
@@ -78,6 +81,7 @@ namespace ws
                 struct pollfd 	fd;
                 int				new_sd;
 
+                // std::cout << "New connection, socket fd is " << fds[i].fd << std::endl;
                 do
                 {
                     new_sd = findSocket(fds[i].fd)->acceptSocket();
@@ -88,6 +92,7 @@ namespace ws
                     fd.revents = POLLIN;
                     fds.push_back(fd);
                 } while (new_sd >= 0);
+                // std::cout << "Connection accepted." << std::endl;
             }
 
             bool isServer(int sd)
@@ -108,114 +113,192 @@ namespace ws
 
                 std::memset(&buffer, 0, sizeof(buffer));
                 ws::Socket *socket = findClient(fds[i].fd);
-                // std::cout << "***********RECV**********" << std::endl;
 
                 rc = recv(fds[i].fd, buffer, (sizeof(buffer) - 1), 0);
+                std::cout << "buffer: " << buffer << std::endl;
+                /* Check to see if the recv failed. */
                 if (rc == -1)
                     return (false);
 
+                /* Check to see if the connection has been closed by the client */
                 if (rc == 0) {
                     std::cout << "Connection closed." << std::endl;
                     return (false);
                 }
-                /* Check if request has finished receiving data      */
+
                 requestMap[fds[i].fd].append(buffer, rc);
+
+                /* check if request has surpassed the limit */
+                for (int k = 0; k < rc; ++k)
+                {
+                    if (requestMap[fds[i].fd].size() > socket->getConfig().getBodySizeLimit() * 1000000)
+                    {
+                        std::cout << "********* LIMIT ********" << std::endl;
+                        requests[fds[i].fd].set_status(413);
+                        requests[fds[i].fd].set_init(1);
+                        return (true);
+                    }
+                }
+
                 requests[fds[i].fd].setServer(socket->getConfig());
                 requests[fds[i].fd].setBody(requestMap[fds[i].fd]);
-                requests[fds[i].fd].set_inittt();
+                if (requests[fds[i].fd].get_init() == 0)
+                    requests[fds[i].fd].set_inittt();
+                requests[fds[i].fd].get_matched(requests[fds[i].fd].getLocation());
+
+                if (requests[fds[i].fd].get_status() == 200 && requests[fds[i].fd].get_method() == 2)
+                {
+                    if (requests[fds[i].fd].get_body_kind() == 1 && requests[fds[i].fd].getMyLocation().getUpload() == true)
+                    {
+                        std::cout << "********* upload 1 ********" << std::endl;
+					    requests[fds[i].fd].upload1(requests[fds[i].fd].getBody());
+                    }
+				    else if (requests[fds[i].fd].get_body_kind() == 2 && requests[fds[i].fd].getMyLocation().getUpload() == true)
+                    {
+                        std::cout << "********* upload 2 ********" << std::endl;
+					    requests[fds[i].fd].upload2(requests[fds[i].fd].getBody());
+                    }
+                }
+                else
+                    requests[fds[i].fd].set_init(1);
+                
+                /*  */
+                std::map<std::string, std::string>	header_map = requests[fds[i].fd].get_header_map();
+                if (header_map["\rHost"].size() > 0)
+                {
+                    if(socket->getConfig().getServerName() != header_map["\rHost"])
+                    {
+                        for (size_t i = 0; i < servers.size(); i++)
+                        {
+                            if (servers[i].getServerName() == header_map["\rHost"])
+                            {
+                                requests[fds[i].fd].setServer(servers[i]);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                /* Check if request has finished receiving data */
 				if (requests[fds[i].fd].get_init() != 0)
                 {
-                    std::cout << "***********FINISHED**********" << std::endl;
 					fds[i].events = POLLOUT;
-                    requests[fds[i].fd].get_matched();
                     std::memset(&requestMap[fds[i].fd], 0, sizeof(requestMap[fds[i].fd]));
+                    requestMap[fds[i].fd].clear();
                 }
-                // std::cout << "***********END RECV**********" << std::endl;
                 return (true);
             }
 
             bool	sendData(int i)
             {
-                // get response
-                std::cout << "*********SEND RESPONSE********" << std::endl;
-                if (requests[fds[i].fd].get_method() == 1 && requests[fds[i].fd].get_status() == 200)
+                /* get response from response class */
+                // std::cout << "PATH ====== " << requests[fds[i].fd].getFinalPath() << std::endl;
+                if (responses[fds[i].fd].getFirstTime() == true)
                 {
-                    responses[fds[i].fd].get(fds[i].fd, requests[fds[i].fd]);
+                    if (requests[fds[i].fd].get_method() == 1 && requests[fds[i].fd].get_status() == 200)
+                    {
+                        std::cout << "********* GET ********" << std::endl;
+                        responses[fds[i].fd].get(requests[fds[i].fd]);
+                    }
+                    else if (requests[fds[i].fd].get_method() == 2 && requests[fds[i].fd].get_status() == 200)
+                    {
+                        std::cout << "********* POST ********" << std::endl;
+                        responses[fds[i].fd].post(requests[fds[i].fd]);
+                    }
+                    else if (requests[fds[i].fd].get_method() == 3 && requests[fds[i].fd].get_status() == 200)
+                    {
+                        std::cout << "********* DELETE ********" << std::endl;
+                        responses[fds[i].fd]._delete(requests[fds[i].fd]);
+                    }
+                    else
+                    {
+                        std::cout << "********* ERROR ********" << std::endl;
+                        responses[fds[i].fd].error(requests[fds[i].fd]);
+                    }
+                    responses[fds[i].fd].setFirstTime(false);
+                    // responseMap[fds[i].fd] = responses[fds[i].fd].getContent();
                 }
-                else if (requests[fds[i].fd].get_method() == 2 && requests[fds[i].fd].get_status() == 200)
+
+                /* send response to client */
+                std::cout << "********* SEND RESPONSE ********" << std::endl;
+                sendResponse(responses[fds[i].fd].getStatusCode(), fds[i].fd, responses[fds[i].fd]);
+
+                /* check if response is finished sending to close the connection */
+                if (responses[fds[i].fd].getDone() == true)
                 {
-                    //if (check_upload_support(this->final_path))
-                        requests[fds[i].fd].upload();
-                    //else
-			            // requests[fds[i].fd].post();
+                    std::cout << "********* DONE ********" << std::endl;
+                    responses.erase(fds[i].fd);
+                    requestMap.erase(fds[i].fd);
+                    requests.erase(fds[i].fd);
+                    close(fds[i].fd);
+                    fds.erase(fds.begin() + i);
+
+
+
+                    // if (requests[fds[i].fd].get_header_map()["\rConnection"] != "keep-alive\r")
+                    // {
+                    //     requests.erase(fds[i].fd);
+
+                    //     return (false);
+                    // }
+                    // requests.erase(fds[i].fd);
+                    // fds[i].events = POLLIN;
+                    return (false);
                 }
-                else if (requests[fds[i].fd].get_method() == 3 && requests[fds[i].fd].get_status() == 200)
-                {
-                    responses[fds[i].fd]._delete(fds[i].fd, requests[fds[i].fd]);
-                }
-                else
-                {
-                    // error
-                }
-                std::cout << "**********CLOSE SOCKET********" << std::endl;
-                ws::Socket *socket = findClient(fds[i].fd);
-                requests.erase(fds[i].fd);
-                socket->removeClient(fds[i].fd);
-                close(fds[i].fd);
-                fds[i].fd = -1;
-                fds.erase(fds.begin() + i);
                 return (true);
             }
 
-            void startServer(void)
+            void startServer(std::vector<ws::ServerData> &servers)
             {
+                this->servers = servers;
                 int p = 1;
-                int timeout = (60 * 60 * 1000);
 
                 std::cout << " Servers are starting..." << std::endl;
                 while (true)
                 {
-                    p = poll(&fds.front(), fds.size(), timeout);
-                    
+                    p = poll(&fds.front(), fds.size(), -1);
                     if (p < 0)
                     {
                         std::cerr << "Error, Poll failed." << std::endl;
                         break;
                     }
-                    if (p != 0)
+                    size_t size = fds.size();
+                    for (size_t i = 0; i < size; i++)
                     {
-                        size_t size = fds.size();
-                        for (size_t i = 0; i < size; i++) 
+                        if (fds[i].revents == 0)
+                            continue;
+                        if (isServer(fds[i].fd))
+                            acceptClient(i);
+                        else if (fds[i].revents == POLLERR || fds[i].revents == POLLNVAL || fds[i].revents == POLLHUP)
                         {
-                            if (fds[i].revents == 0)
+                            ws::Socket *socket = findClient(fds[i].fd);
+                            if (socket == nullptr)
                                 continue;
-                            if (isServer(fds[i].fd))
-                                acceptClient(i);
-                            else if (fds[i].revents & POLLERR || fds[i].revents & POLLNVAL || fds[i].revents & POLLHUP)
-                            {
-                                ws::Socket *socket = findClient(fds[i].fd);
-                                socket->removeClient(fds[i].fd);
-                                close(fds[i].fd);
-                                fds[i].fd = -1;
-                                fds.erase(fds.begin() + i);
-                            }
-                            else
-                            {
-                                if (fds[i].revents == POLLIN)
-                                {
-                                    if (!recvData(i))
-                                        fds[i].events = POLLHUP;
-                                }
-                                if (fds[i].revents == POLLOUT)
-                                {
-                                    if (!sendData(i))
-                                        fds[i].events = POLLHUP;
-                                }
-                            }
+                            socket->removeClient(fds[i].fd);
+                            close(fds[i].fd);
+                            fds[i].fd = -1;
+                        }
+                        else  if (fds[i].revents == POLLIN)
+                        {
+                            if (!recvData(i))
+                                fds[i].events = POLLHUP;
+                        }
+                        else if (fds[i].revents == POLLOUT)
+                        {
+                            if (!sendData(i))
+                                fds[i].events = POLLHUP;
                         }
                     }
+                    /* Remove closed sockets from the fds vector */
+                    for (size_t i = 0; i < size; i++) 
+                    {
+                        if (fds[i].fd == -1)
+                            fds.erase(fds.begin() + i);
+                        else
+                            ++i;
+                    }
                 }
-                // Close all the sockets that are open
+                /* Close all the sockets that are open */
                 for (size_t i = 0; i < fds.size(); i++)
                 {
                     if (fds[i].fd >= 0)
